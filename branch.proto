@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+service Branch {
+  rpc MsgDelivery (MsgDeliveryRequest) returns (MsgDeliveryResponse) {}
+}
+
+
+// Request structure
+message MsgDeliveryRequest {
+  repeated RequestElement request_elements = 1;
+}
+
+message RequestElement {
+  int32 id = 1;
+  string interface = 2;
+  int32 money = 3;
+}
+
+
+// Response structure
+message MsgDeliveryResponse {
+  int32 id = 1;
+  repeated MessageReceived recv = 2;
+}
+
+message MessageReceived {
+  string interface = 1;
+  ResponseResult result = 2;
+}
+
+message ResponseResult {
+  int32 balance = 1;
+}
