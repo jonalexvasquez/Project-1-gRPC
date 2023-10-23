@@ -1,17 +1,18 @@
-import grpc
 import json
-import branch_pb2_grpc
-from branch_pb2 import RequestElement, MsgDeliveryRequest
 import time
+
+import grpc
+from google.protobuf.json_format import MessageToDict, MessageToJson
+
+import branch_pb2_grpc
+from branch_pb2 import MsgDeliveryRequest, RequestElement
+
+
 class Customer:
     def __init__(self, id, events):
-        # unique ID of the Customer
         self.id = id
-        # events from the input
         self.events = events
-        # a list of received messages used for debugging purpose
         self.recvMsg = list()
-        # pointer for the stub
         self.stub = None
 
     def createStub(self):
@@ -19,7 +20,6 @@ class Customer:
         # between customer and branch.
         channel = 5000 + self.id
         channel_name = "localhost:" + str(channel)
-        print(channel_name)
         channel = grpc.insecure_channel(channel_name)
         self.stub = branch_pb2_grpc.BranchStub(channel)
 
@@ -27,7 +27,11 @@ class Customer:
         request_data = []
         for event in self.events:
             request_data.append(
-                RequestElement(id=event["id"], interface=event["interface"], money=event.get("money")),
+                RequestElement(
+                    id=event["id"],
+                    interface=event["interface"],
+                    money=event.get("money"),
+                ),
             )
         request = MsgDeliveryRequest(request_elements=request_data)
         response = self.stub.MsgDelivery(request)
@@ -38,15 +42,21 @@ class Customer:
 
 
 if __name__ == "__main__":
-    f = open('test_input.json')
+    f = open("test_input.json")
     customer_processes_request = json.load(f)
 
+    customer_response = []
     for customer_processes_request in customer_processes_request:
         if customer_processes_request["type"] == "customer":
-            customer = Customer(id=customer_processes_request["id"], events=customer_processes_request["events"])
+            customer = Customer(
+                id=customer_processes_request["id"],
+                events=customer_processes_request["events"],
+            )
             customer.createStub()
             customer.executeEvents()
-            print(customer.recvMsg)
-            time.sleep(2)
 
+            for customer_response_message in customer.recvMsg:
+                customer_response_dict = MessageToDict(customer_response_message)
+                customer_response.append(customer_response_dict)
 
+    print(json.dumps(customer_response))

@@ -6,30 +6,31 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x62ranch.proto\"?\n\x12MsgDeliveryRequest\x12)\n\x10request_elements\x18\x01 \x03(\x0b\x32\x0f.RequestElement\">\n\x0eRequestElement\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x11\n\tinterface\x18\x02 \x01(\t\x12\r\n\x05money\x18\x03 \x01(\x05\"A\n\x13MsgDeliveryResponse\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x1e\n\x04recv\x18\x02 \x03(\x0b\x32\x10.MessageReceived\"E\n\x0fMessageReceived\x12\x11\n\tinterface\x18\x01 \x01(\t\x12\x1f\n\x06result\x18\x02 \x01(\x0b\x32\x0f.ResponseResult\"!\n\x0eResponseResult\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x05\x32\x44\n\x06\x42ranch\x12:\n\x0bMsgDelivery\x12\x13.MsgDeliveryRequest\x1a\x14.MsgDeliveryResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x0c\x62ranch.proto"?\n\x12MsgDeliveryRequest\x12)\n\x10request_elements\x18\x01 \x03(\x0b\x32\x0f.RequestElement">\n\x0eRequestElement\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x11\n\tinterface\x18\x02 \x01(\t\x12\r\n\x05money\x18\x03 \x01(\x05"A\n\x13MsgDeliveryResponse\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x1e\n\x04recv\x18\x02 \x03(\x0b\x32\x10.MessageReceived"E\n\x0fMessageReceived\x12\x11\n\tinterface\x18\x01 \x01(\t\x12\x1f\n\x06result\x18\x02 \x01(\x0b\x32\x0f.ResponseResult"1\n\x0eResponseResult\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x05\x12\x0e\n\x06status\x18\x02 \x01(\t2D\n\x06\x42ranch\x12:\n\x0bMsgDelivery\x12\x13.MsgDeliveryRequest\x1a\x14.MsgDeliveryResponse"\x00\x62\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'branch_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "branch_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
-  DESCRIPTOR._options = None
-  _globals['_MSGDELIVERYREQUEST']._serialized_start=16
-  _globals['_MSGDELIVERYREQUEST']._serialized_end=79
-  _globals['_REQUESTELEMENT']._serialized_start=81
-  _globals['_REQUESTELEMENT']._serialized_end=143
-  _globals['_MSGDELIVERYRESPONSE']._serialized_start=145
-  _globals['_MSGDELIVERYRESPONSE']._serialized_end=210
-  _globals['_MESSAGERECEIVED']._serialized_start=212
-  _globals['_MESSAGERECEIVED']._serialized_end=281
-  _globals['_RESPONSERESULT']._serialized_start=283
-  _globals['_RESPONSERESULT']._serialized_end=316
-  _globals['_BRANCH']._serialized_start=318
-  _globals['_BRANCH']._serialized_end=386
+    DESCRIPTOR._options = None
+    _globals["_MSGDELIVERYREQUEST"]._serialized_start = 16
+    _globals["_MSGDELIVERYREQUEST"]._serialized_end = 79
+    _globals["_REQUESTELEMENT"]._serialized_start = 81
+    _globals["_REQUESTELEMENT"]._serialized_end = 143
+    _globals["_MSGDELIVERYRESPONSE"]._serialized_start = 145
+    _globals["_MSGDELIVERYRESPONSE"]._serialized_end = 210
+    _globals["_MESSAGERECEIVED"]._serialized_start = 212
+    _globals["_MESSAGERECEIVED"]._serialized_end = 281
+    _globals["_RESPONSERESULT"]._serialized_start = 283
+    _globals["_RESPONSERESULT"]._serialized_end = 332
+    _globals["_BRANCH"]._serialized_start = 334
+    _globals["_BRANCH"]._serialized_end = 402
 # @@protoc_insertion_point(module_scope)

@@ -30,4 +30,6 @@ message MessageReceived {
 
 message ResponseResult {
   int32 balance = 1;
+  string status = 2;
+
 }
