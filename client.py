@@ -59,4 +59,6 @@ if __name__ == "__main__":
                 customer_response_dict = MessageToDict(customer_response_message)
                 customer_response.append(customer_response_dict)
 
-    print(json.dumps(customer_response))
+    # Writing to sample.json
+    with open("output_file.json", "w") as outfile:
+        outfile.write(json.dumps(customer_response, indent=4))
