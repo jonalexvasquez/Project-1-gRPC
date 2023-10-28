@@ -61,7 +61,7 @@ if __name__ == "__main__":
                 customer_response.append(customer_response_dict)
 
     # Writing to sample.json
-    with open("output_file.json", "w") as outfile:
+    with open("Jonathan_Vasquez_gRPC.json", "w") as outfile:
         outfile.write(json.dumps(customer_response, indent=4))
 
     # Terminate all branch processes after completing all events.
