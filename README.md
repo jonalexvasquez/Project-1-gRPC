@@ -3,7 +3,7 @@ needed: https://wiki.python.org/moin/BeginnersGuide/Download.
 
 Once python is installed and this repository is pulled follow these steps:
 
-1.) Go to the root of the projects and install venv: `python -m venv venv  `
+1.) Go to the root of the project and install venv: `python -m venv venv  `
 
 2.) Activate the virtual environment: `source venv/bin/activate`
 
