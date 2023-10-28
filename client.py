@@ -57,6 +57,7 @@ if __name__ == "__main__":
 
             for customer_response_message in customer.recvMsg:
                 customer_response_dict = MessageToDict(customer_response_message)
+                print(customer_response_dict, "\n")
                 customer_response.append(customer_response_dict)
 
     # Writing to sample.json
