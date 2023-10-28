@@ -164,6 +164,7 @@ if __name__ == "__main__":
             branch_ids.append(branch_id)
             branch_ports.append(branch_port_starting_range + branch_id)
 
+
     # Start a process for each Branch.
     for i in range(len(branch_ids)):
         # Store all branch ports ids except for own branch's port id to avoid events double-dipping.

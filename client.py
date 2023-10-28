@@ -1,8 +1,8 @@
 import json
-import time
+import subprocess
 
 import grpc
-from google.protobuf.json_format import MessageToDict, MessageToJson
+from google.protobuf.json_format import MessageToDict
 
 import branch_pb2_grpc
 from branch_pb2 import MsgDeliveryRequest, RequestElement
@@ -57,9 +57,23 @@ if __name__ == "__main__":
 
             for customer_response_message in customer.recvMsg:
                 customer_response_dict = MessageToDict(customer_response_message)
-                print(customer_response_dict, "\n")
+                print(customer_response_dict)
                 customer_response.append(customer_response_dict)
 
     # Writing to sample.json
     with open("output_file.json", "w") as outfile:
         outfile.write(json.dumps(customer_response, indent=4))
+
+    # Terminate all branch processes after completing all events.
+    command_name = "python branch_server.py"
+
+    # Use the 'pgrep' command to get PIDs of processes by name
+    pgrep_command = f"pgrep -f '{command_name}'"
+    pids = subprocess.check_output(pgrep_command, shell=True).decode().split('\n')
+
+    # Iterate through the PIDs and use the 'kill' command to terminate the processes
+    for pid in pids:
+        pid = pid.strip()
+        if pid:
+            subprocess.run(f"kill -9 {pid}", shell=True)
+            print(f"Terminated process with PID {pid}")
