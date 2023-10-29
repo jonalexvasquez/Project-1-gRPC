@@ -16,5 +16,5 @@ Once python is installed and this repository is pulled follow these steps:
 
 5.) Now, in your other terminal session run the client: `python client.py`. You will see the results in two places.
 The first place you will see the results is in the console itself. The second place you will see the results is in a
-file called `output_file.json`. Open that file and you will see the message responses correctly following what was 
+file called `Jonathan_Vasquez_gRPC.json`. Open that file and you will see the message responses correctly following what was 
 the required output.
