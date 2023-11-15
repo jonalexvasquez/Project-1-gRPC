@@ -1,12 +1,13 @@
-from typing import ClassVar as _ClassVar
-from typing import Iterable as _Iterable
-from typing import Mapping as _Mapping
-from typing import Optional as _Optional
-from typing import Union as _Union
-
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from google.protobuf.internal import containers as _containers
+from typing import (
+    ClassVar as _ClassVar,
+    Iterable as _Iterable,
+    Mapping as _Mapping,
+    Optional as _Optional,
+    Union as _Union,
+)
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -20,18 +21,30 @@ class MsgDeliveryRequest(_message.Message):
     ) -> None: ...
 
 class RequestElement(_message.Message):
-    __slots__ = ["id", "interface", "money"]
-    ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = [
+        "customer_request_id",
+        "interface",
+        "money",
+        "logical_clock",
+        "comment",
+    ]
+    CUSTOMER_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     INTERFACE_FIELD_NUMBER: _ClassVar[int]
     MONEY_FIELD_NUMBER: _ClassVar[int]
-    id: int
+    LOGICAL_CLOCK_FIELD_NUMBER: _ClassVar[int]
+    COMMENT_FIELD_NUMBER: _ClassVar[int]
+    customer_request_id: int
     interface: str
     money: int
+    logical_clock: int
+    comment: str
     def __init__(
         self,
-        id: _Optional[int] = ...,
+        customer_request_id: _Optional[int] = ...,
         interface: _Optional[str] = ...,
         money: _Optional[int] = ...,
+        logical_clock: _Optional[int] = ...,
+        comment: _Optional[str] = ...,
     ) -> None: ...
 
 class MsgDeliveryResponse(_message.Message):

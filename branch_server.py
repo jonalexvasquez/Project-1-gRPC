@@ -1,7 +1,7 @@
 import json
-import time
 from concurrent import futures
-from multiprocessing import Process
+from multiprocessing import Process, Lock
+from filelock import FileLock
 
 import grpc
 
@@ -15,18 +15,27 @@ from branch_pb2 import (
 )
 
 
+def get_last_non_zero(s):
+    for char in reversed(s):
+        if char != "0":
+            return int(char)
+    return 0  # If all characters are zero
+
+
 class Branch(branch_pb2_grpc.BranchServicer):
     def __init__(self, id, balance, branches):
         self.id = id
         self.balance = balance
         self.branches = branches
-        self.stubList = [
-            branch_pb2_grpc.BranchStub(
+        self.stubDict = {
+            branch: branch_pb2_grpc.BranchStub(
                 grpc.insecure_channel("localhost:" + str(branch))
             )
             for branch in self.branches
-        ]
-        self.recvMsg = list()
+        }
+        self.recvMsg = list()  # Will be used to keep track of all events
+        self.local_clock = 1
+        self.events = list()
 
     # Query implementation.
     def handle_query_response(self):
@@ -37,45 +46,82 @@ class Branch(branch_pb2_grpc.BranchServicer):
         return message_received
 
     # Withdraw implementation.
-    def handle_withdraw_response(self, amount: int):
+    def handle_withdraw_response(self, amount: int, customer_request_id):
         self.balance -= amount
 
         message_received = MessageReceived(interface="withdraw")
         response_result = ResponseResult(status="success")
         message_received.result.CopyFrom(response_result)
 
-        self.propagate_withdraw(amount)
+        self.propagate_withdraw(amount, customer_request_id)
 
         return message_received
 
     # Deposit implementation.
-    def handle_deposit_response(self, amount: int):
+    def handle_deposit_response(self, amount: int, customer_request_id):
         self.balance += amount
 
         message_received = MessageReceived(interface="deposit")
         response_result = ResponseResult(status="success")
         message_received.result.CopyFrom(response_result)
 
-        self.propagate_deposit(amount)
-
+        self.propagate_deposit(amount, customer_request_id)
         return message_received
 
     # Propagate_Withdraw implementation.
-    def propagate_withdraw(self, amount_to_withdraw: int):
-        propagate_withdraw_request = RequestElement(
-            id=1000, interface="propagate_withdraw", money=amount_to_withdraw
-        )
-        request = MsgDeliveryRequest(request_elements=[propagate_withdraw_request])
-        for stub in self.stubList:
+    def propagate_withdraw(self, amount_to_withdraw: int, customer_request_id):
+        for port, stub in self.stubDict.items():
+            self.local_clock += 1
+            event =  {
+                    "customer-request-id": customer_request_id,
+                    "logical_clock": self.local_clock,
+                    "interface": "propagate_withdraw",
+                    "comment": "event_sent to branch {}".format(
+                        get_last_non_zero(str(port))
+                    ),
+                }
+            self.events.append(event)
+            with FileLock("all_events.lock"):
+                with open('all_events.json', 'a') as file:
+                    # write text to data
+                    json.dump(event, file, indent=4)
+
+            propagate_withdraw_request = RequestElement(
+                customer_request_id=customer_request_id,
+                interface="propagate_withdraw",
+                money=amount_to_withdraw,
+                logical_clock=self.local_clock,
+                comment="event_recv from branch {}".format(self.id),
+            )
+            request = MsgDeliveryRequest(request_elements=[propagate_withdraw_request])
             stub.MsgDelivery(request)
 
     # Propagate_Deposit implementation.
-    def propagate_deposit(self, amount_to_deposit: int):
-        propagate_deposit_request = RequestElement(
-            id=1, interface="propagate_deposit", money=amount_to_deposit
-        )
-        request = MsgDeliveryRequest(request_elements=[propagate_deposit_request])
-        for stub in self.stubList:
+    def propagate_deposit(self, amount_to_deposit: int, customer_request_id):
+        for port, stub in self.stubDict.items():
+            self.local_clock += 1
+            event = {
+                    "customer-request-id": customer_request_id,
+                    "logical_clock": self.local_clock,
+                    "interface": "propagate_deposit",
+                    "comment": "event_sent to branch {}".format(
+                        get_last_non_zero(str(port))
+                    ),
+                }
+            self.events.append(event)
+            with FileLock("all_events.lock"):
+                with open('all_events.json', 'a') as file:
+                    # write text to data
+                    json.dump(event, file, indent=4)
+
+            propagate_deposit_request = RequestElement(
+                customer_request_id=customer_request_id,
+                interface="propagate_deposit",
+                money=amount_to_deposit,
+                logical_clock=self.local_clock,
+                comment="event_recv from branch {}".format(self.id),
+            )
+            request = MsgDeliveryRequest(request_elements=[propagate_deposit_request])
             stub.MsgDelivery(request)
 
     def handle_propagated_withdrawal(self, amount_to_withdraw: int):
@@ -83,7 +129,6 @@ class Branch(branch_pb2_grpc.BranchServicer):
         A custom implementation of withdrawals. Used to strictly just update the amount on a
         Branch without propagating the request to other processes.
         """
-        self.balance -= amount_to_withdraw
 
         message_received = MessageReceived(interface="propagate_withdraw")
         response_result = ResponseResult(balance=self.balance)
@@ -96,7 +141,6 @@ class Branch(branch_pb2_grpc.BranchServicer):
         A custom implementation of deposits. Used to strictly just update the amount on a
         Branch without propagating the request to other processes.
         """
-        self.balance += amount_to_deposit
 
         message_received = MessageReceived(interface="propagate_deposit")
         response_result = ResponseResult(balance=self.balance)
@@ -105,37 +149,91 @@ class Branch(branch_pb2_grpc.BranchServicer):
         return message_received
 
     def MsgDelivery(self, request, context):
-        response = MsgDeliveryResponse(id=self.id)
-        for request_element in request.request_elements:
-            event_id = request_element.id
-            interface = request_element.interface
-            money = request_element.money
-            print(
-                "Branch ID: {} handling Event ID:{}".format(
-                    str(self.id), str(event_id)
-                ),
-                "\n",
-            )
-            if interface == "query":
-                message_received = self.handle_query_response()
-            if interface == "withdraw":
-                message_received = self.handle_withdraw_response(money)
-            if interface == "deposit":
-                message_received = self.handle_deposit_response(money)
-            if interface == "propagate_withdraw":
-                message_received = self.handle_propagated_withdrawal(money)
-            if interface == "propagate_deposit":
-                message_received = self.handle_propagated_deposit(money)
+        lock = Lock()
+        with lock:
+            response = MsgDeliveryResponse(id=self.id)
+            for request_element in request.request_elements:
+                self.local_clock = (
+                    max(self.local_clock, request_element.logical_clock) + 1
+                )
+                customer_request_id = request_element.customer_request_id
+                interface = request_element.interface
+                money = request_element.money
 
-            response.recv.extend([message_received])
+                if interface == "withdraw":
+                    event= {
+                            "customer-request-id": customer_request_id,
+                            "logical_clock": self.local_clock,
+                            "interface": interface,
+                            "comment": "event_recv from customer {}".format(
+                                str(self.id)
+                            ),
+                        }
+                    self.events.append(event)
+                    with FileLock("all_events.lock"):
+                        with open('all_events.json', 'a') as file:
+                            # write text to data
+                            json.dump(event, file, indent=4)
+                    message_received = self.handle_withdraw_response(
+                        money, customer_request_id
+                    )
+                if interface == "deposit":
+                    event = {
+                        "customer-request-id": customer_request_id,
+                        "logical_clock": self.local_clock,
+                        "interface": interface,
+                        "comment": "event_recv from customer {}".format(
+                            str(self.id)
+                        ),
+                    }
+                    self.events.append(event)
+                    with FileLock("all_events.lock"):
+                        with open('all_events.json', 'a') as file:
+                            # write text to data
+                            json.dump(event, file, indent=4)
+                    message_received = self.handle_deposit_response(
+                        money, customer_request_id
+                    )
+                if interface == "propagate_withdraw":
+                    event = {
+                        "customer-request-id": customer_request_id,
+                        "logical_clock": self.local_clock,
+                        "interface": interface,
+                        "comment": request_element.comment,
+                    }
+                    self.events.append(event)
+                    with FileLock("all_events.lock"):
+                        with open('all_events.json', 'a') as file:
+                            # write text to data
+                            json.dump(event, file, indent=4)
+                    message_received = self.handle_propagated_withdrawal(money)
+                if interface == "propagate_deposit":
+                    event = {
+                            "customer-request-id": customer_request_id,
+                            "logical_clock": self.local_clock,
+                            "interface": interface,
+                            "comment": request_element.comment,
+                        }
+                    self.events.append(event)
+                    with FileLock("all_events.lock"):
+                        with open('all_events.json', 'a') as file:
+                            # write text to data
+                            json.dump(event, file, indent=4)
+                    message_received = self.handle_propagated_deposit(money)
+
+                response.recv.extend([message_received])
+
+        # Write events to a JSON file
+        with open(f"branch_{self.id}_events.json", "w") as json_file:
+            json.dump(self.events, json_file, indent=4)
 
         return response
 
 
 def serve(branch_id: int, port: int, branch_ports: list):
     port = port
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
-    branch = Branch(id=branch_id, balance=400, branches=branch_ports)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=len(branch_ports)))
+    Branch(id=branch_id, balance=400, branches=branch_ports)
     branch_pb2_grpc.add_BranchServicer_to_server(
         Branch(id=branch_id, balance=400, branches=branch_ports), server
     )
@@ -164,7 +262,6 @@ if __name__ == "__main__":
             branch_ids.append(branch_id)
             branch_ports.append(branch_port_starting_range + branch_id)
 
-
     # Start a process for each Branch.
     for i in range(len(branch_ids)):
         # Store all branch ports ids except for own branch's port id to avoid events double-dipping.
@@ -181,6 +278,3 @@ if __name__ == "__main__":
             ),
         )
         process.start()
-        # sleep so processes get created in order. No need for this but visually it looks better
-        # when debugging.
-        time.sleep(0.01)

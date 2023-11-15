@@ -1,11 +1,17 @@
 import json
 import subprocess
+import sys
+from multiprocessing import Process, Lock
+from filelock import FileLock
 
 import grpc
-from google.protobuf.json_format import MessageToDict
+
+from concurrent.futures import ThreadPoolExecutor
 
 import branch_pb2_grpc
 from branch_pb2 import MsgDeliveryRequest, RequestElement
+
+global_map = {}
 
 
 class Customer:
@@ -14,6 +20,8 @@ class Customer:
         self.events = events
         self.recvMsg = list()
         self.stub = None
+        self.local_clock = 0
+        self.request_events = list()
 
     def createStub(self):
         # Channel connections are in the 5xxx range so this finds the correct mapping
@@ -26,11 +34,28 @@ class Customer:
     def executeEvents(self):
         request_data = []
         for event in self.events:
+            self.local_clock += 1
+            event = {
+                    "customer-request-id": event["customer-request-id"],
+                    "logical_clock": self.local_clock,
+                    "interface": event["interface"],
+                    "comment": "event_sent from customer {}".format(self.id),
+                }
+            self.request_events.append(event)
+            with FileLock("all_events.lock"):
+                with open('all_events.json', 'a') as file:
+                    # write text to data
+                    json.dump(event, file, indent=4)
+                    file.write("\n")  # Add a newline to separate JSON objects
+
+            global_map[self.id] = self.request_events
             request_data.append(
                 RequestElement(
-                    id=event["id"],
+                    customer_request_id=event["customer-request-id"],
                     interface=event["interface"],
                     money=event.get("money"),
+                    logical_clock=self.local_clock,
+                    comment="event_sent from customer {}".format(self.id),
                 ),
             )
         request = MsgDeliveryRequest(request_elements=request_data)
@@ -41,28 +66,62 @@ class Customer:
         return "Customer:{}".format(self.id)
 
 
+def serve_and_collect_events(customer):
+    print(f"Starting customer id: {customer.id}")
+
+    customer.createStub()
+    customer.executeEvents()
+
+    # Collect events into global_map using the customer ID as the key
+    global_map[customer.id] = customer.request_events
+
+    print(f"Ending customer id: {customer.id}")
+
+
 if __name__ == "__main__":
     f = open("test_input.json")
     customer_processes_request = json.load(f)
 
-    customer_response = []
-    for customer_processes_request in customer_processes_request:
-        if customer_processes_request["type"] == "customer":
-            customer = Customer(
-                id=customer_processes_request["id"],
-                events=customer_processes_request["events"],
-            )
-            customer.createStub()
-            customer.executeEvents()
+    customers = [
+        Customer(id=req["id"], events=req["customer-requests"])
+        for req in customer_processes_request
+        if req["type"] == "customer"
+    ]
 
-            for customer_response_message in customer.recvMsg:
-                customer_response_dict = MessageToDict(customer_response_message)
-                print(customer_response_dict)
-                customer_response.append(customer_response_dict)
+    with ThreadPoolExecutor() as executor:
+        executor.map(serve_and_collect_events, customers)
 
-    # Writing to sample.json
-    with open("Jonathan_Vasquez_gRPC.json", "w") as outfile:
-        outfile.write(json.dumps(customer_response, indent=4))
+    with open("results.json", "w") as results_file:
+        # Write results to JSON file
+        customer_response = []
+        for customer_id, request_events in global_map.items():
+            current_customer_response = {
+                "id": customer_id,
+                "type": "customer",
+                "events": request_events,
+            }
+            customer_response.append(current_customer_response)
+
+        json.dump(customer_response, results_file, indent=4)
+
+        branch_response = []
+        for customer_id in global_map:
+            with open(f"branch_{customer_id}_events.json", "r") as file:
+                # Load the data from the file into a list
+                current_branch_response = {
+                    "id": customer_id,
+                    "type": "branch",
+                    "events": json.load(file),
+                }
+                branch_response.append(current_branch_response)
+
+        json.dump(branch_response, results_file, indent=4)
+
+        with open("all_events.json", "r") as all_events_file:
+            data_to_append = all_events_file.read()
+
+        results_file.write(data_to_append)
+
 
     # Terminate all branch processes after completing all events.
     command_name = "python branch_server.py"
