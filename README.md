@@ -1,3 +1,6 @@
+Project 2
+
+
 This application runs on Python and specifically on Python >=3.7.7. To install Python please follow directions here if 
 needed: https://wiki.python.org/moin/BeginnersGuide/Download.
 
