@@ -17,7 +17,4 @@ Once python is installed and this repository is pulled follow these steps:
 4.) Now, in your terminal open up two consoles/sessions of your terminal. First run the server by running: 
 `python branch_server.py`. You should see logs stating that certain processes were started.
 
-5.) Now, in your other terminal session run the client: `python client.py`. You will see the results in two places.
-The first place you will see the results is in the console itself. The second place you will see the results is in a
-file called `Jonathan_Vasquez_gRPC.json`. Open that file and you will see the message responses correctly following what was 
-the required output.
+5.) Now, in your other terminal session run the client: `python client.py`. You will see the results in results.json
