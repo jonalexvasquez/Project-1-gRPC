@@ -66,6 +66,7 @@ class Customer:
         return "Customer:{}".format(self.id)
 
 
+
 def serve_and_collect_events(customer):
     print(f"Starting customer id: {customer.id}")
 
@@ -76,6 +77,9 @@ def serve_and_collect_events(customer):
     global_map[customer.id] = customer.request_events
 
     print(f"Ending customer id: {customer.id}")
+
+def callback(future):
+    pass
 
 
 if __name__ == "__main__":
@@ -89,12 +93,14 @@ if __name__ == "__main__":
     ]
 
     with ThreadPoolExecutor() as executor:
-        executor.map(serve_and_collect_events, customers)
+        futures = executor.map(serve_and_collect_events, customers)
+        callback_future = executor.submit(callback, futures)
 
+    callback_future.result()
     with open("results.json", "w") as results_file:
         # Write results to JSON file
         customer_response = []
-        for customer_id, request_events in global_map.items():
+        for customer_id, request_events in dict(sorted(global_map.items())).items():
             current_customer_response = {
                 "id": customer_id,
                 "type": "customer",
@@ -105,7 +111,7 @@ if __name__ == "__main__":
         json.dump(customer_response, results_file, indent=4)
 
         branch_response = []
-        for customer_id in global_map:
+        for customer_id in dict(sorted(global_map.items())):
             with open(f"branch_{customer_id}_events.json", "r") as file:
                 # Load the data from the file into a list
                 current_branch_response = {
